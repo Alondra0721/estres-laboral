@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis Interactivo de Estrés Laboral</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Neutrals -->
+    <!-- Application Structure Plan: Se ha diseñado una aplicación de una sola página con un flujo de navegación temático y vertical para guiar al usuario desde lo general a lo específico. Comienza con un resumen de alto impacto (hallazgos clave), seguido de una sección de análisis dimensional interactivo (el núcleo de la exploración), luego una visualización de factores influyentes, una sección de implicaciones y limitaciones, y concluye con recomendaciones accionables en un formato de acordeón. Esta estructura fue elegida porque facilita una comprensión progresiva y permite al usuario explorar los datos a su propio ritmo, en lugar de seguir la estructura lineal del informe original, mejorando así la usabilidad y el engagement. -->
+    <!-- Visualization & Content Choices: 
+        - Resumen (Hallazgos Clave): Objetivo: Informar/Impactar. Método: Tarjetas de estadísticas (HTML/Tailwind). Interacción: Ninguna. Justificación: Proporciona una visión general inmediata de los puntos más críticos.
+        - Análisis Dimensional: Objetivo: Comparar/Explorar. Método: Gráfico de dona (Chart.js/Canvas) y bloque de texto dinámico. Interacción: Botones para seleccionar la dimensión, actualizando dinámicamente el gráfico y el texto de análisis. Justificación: Permite un análisis enfocado en cada dimensión, mostrando claramente la proporción de respuestas y su interpretación sin abrumar al usuario.
+        - Factores de Influencia: Objetivo: Comparar. Método: Gráfico de barras (Chart.js/Canvas). Interacción: Tooltips al pasar el cursor. Justificación: Compara eficazmente el agotamiento entre diferentes grupos de empleados, destacando vulnerabilidades.
+        - Implicaciones y Límites: Objetivo: Organizar/Informar. Método: Columnas de texto (HTML/Tailwind). Justificación: Presenta información teórica y contextual de forma clara y digerible.
+        - Recomendaciones: Objetivo: Organizar/Accionar. Método: Acordeón (HTML/Tailwind/JS). Interacción: Clic para expandir/colapsar. Justificación: Ofrece información detallada de manera compacta y controlada por el usuario, evitando un muro de texto.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            margin-left: auto;
+            margin-right: auto;
+            aspect-ratio: 1 / 1;
+        }
+        .bar-chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            margin-left: auto;
+            margin-right: auto;
+            min-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .bar-chart-container {
+                min-height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0d9488;
+            border-bottom-color: #0d9488;
+        }
+        .dimension-btn {
+            transition: all 0.3s;
+        }
+        .dimension-btn.active {
+            background-color: #0d9488;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-teal-700">Análisis de Estrés Laboral</h1>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#resumen" class="nav-link font-medium border-b-2 border-transparent pb-1">Resumen</a>
+                <a href="#analisis" class="nav-link font-medium border-b-2 border-transparent pb-1">Análisis</a>
+                <a href="#implicaciones" class="nav-link font-medium border-b-2 border-transparent pb-1">Implicaciones</a>
+                <a href="#recomendaciones" class="nav-link font-medium border-b-2 border-transparent pb-1">Recomendaciones</a>
+            </div>
+            <div class="md:hidden">
+                <select id="mobile-nav" class="bg-white border border-gray-300 rounded-md py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <option value="#resumen">Resumen</option>
+                    <option value="#analisis">Análisis</option>
+                    <option value="#implicaciones">Implicaciones</option>
+                    <option value="#recomendaciones">Recomendaciones</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="resumen" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-4">Síntesis de Hallazgos Clave</h2>
+                <p class="max-w-3xl mx-auto text-lg text-slate-600 mb-12">Esta sección ofrece una visión general de los resultados más significativos de la encuesta de estrés laboral realizada a 19 empleados. Los datos destacan las áreas de mayor preocupación y las fortalezas del entorno laboral actual.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-slate-50 p-8 rounded-xl shadow-md border border-slate-200/80">
+                        <div class="text-5xl font-bold text-red-500 mb-3">42%</div>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">Alta Demanda Laboral</h3>
+                        <p class="text-slate-600">Porcentaje que siente que la carga de trabajo es excesiva, los plazos ajustados generan presión o las interrupciones son frecuentes.</p>
+                    </div>
+                    <div class="bg-slate-50 p-8 rounded-xl shadow-md border border-slate-200/80">
+                        <div class="text-5xl font-bold text-amber-500 mb-3">63%</div>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">Agotamiento Físico/Mental</h3>
+                        <p class="text-slate-600">Porcentaje que reporta sentirse agotado, indicando un desgaste significativo como consecuencia del estrés crónico.</p>
+                    </div>
+                    <div class="bg-slate-50 p-8 rounded-xl shadow-md border border-slate-200/80">
+                        <div class="text-5xl font-bold text-sky-500 mb-3">72%</div>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">Fuerte Apoyo Social</h3>
+                        <p class="text-slate-600">Porcentaje que percibe un apoyo adecuado por parte de sus compañeros, un recurso clave para mitigar el estrés.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="analisis" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-4">Interpretación de Resultados por Dimensión</h2>
+                    <p class="max-w-3xl mx-auto text-lg text-slate-600">Explore cada una de las dimensiones evaluadas en la encuesta. Seleccione un área para ver el desglose de las respuestas y la interpretación de los resultados. Esto permite identificar las fortalezas y debilidades específicas del entorno laboral.</p>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-2 md:gap-4 mb-12" id="dimension-buttons">
+                </div>
+
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200/80 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div class="chart-container">
+                        <canvas id="dimensionChart"></canvas>
+                    </div>
+                    <div id="dimension-details">
+                        <h3 id="dimension-title" class="text-2xl font-bold text-slate-800 mb-3"></h3>
+                        <p id="dimension-level" class="text-lg font-semibold mb-4"></p>
+                        <p id="dimension-interpretation" class="text-slate-600 leading-relaxed"></p>
+                    </div>
+                </div>
+                 <div class="text-center mt-16">
+                    <h3 class="text-2xl md:text-3xl font-bold text-slate-800 mb-4">Factores de Influencia</h3>
+                    <p class="max-w-3xl mx-auto text-lg text-slate-600 mb-12">Ciertas condiciones personales y roles específicos pueden exacerbar el estrés. Este gráfico compara el nivel de agotamiento reportado por empleados con múltiples responsabilidades (más de un trabajo o estudian) frente al resto.</p>
+                    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200/80">
+                        <div class="bar-chart-container">
+                            <canvas id="factorsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="implicaciones" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-4">Implicaciones y Limitaciones del Estudio</h2>
+                    <p class="max-w-3xl mx-auto text-lg text-slate-600">Aquí se analiza cómo estos hallazgos contribuyen al conocimiento existente sobre el estrés laboral y se reconocen las limitaciones del estudio, lo cual es crucial para una interpretación contextualizada y precisa.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div>
+                        <h3 class="text-2xl font-semibold text-slate-800 mb-4">Implicaciones Teóricas y Prácticas</h3>
+                        <div class="space-y-4 text-slate-600">
+                            <p><strong>Validación de Modelos:</strong> Los resultados validan empíricamente el "proceso de deterioro de la salud" del modelo JD-R, mostrando cómo altas demandas se correlacionan con un pobre bienestar. De igual forma, la insatisfacción salarial respalda el modelo ERI sobre el desequilibrio esfuerzo-recompensa.</p>
+                            <p><strong>Interacción de Recursos:</strong> La coexistencia de un fuerte apoyo de pares con una alta tensión con superiores sugiere que la eficacia de los recursos laborales depende de su fuente y tipo. Un recurso (apoyo horizontal) no compensa necesariamente la falta de otro (apoyo vertical).</p>
+                             <p><strong>Insuficiencia de Recursos:</strong> La paradoja de tener autonomía y claridad de rol junto a un alto agotamiento indica que la mera presencia de algunos recursos es insuficiente si las demandas son abrumadoras o si faltan otros recursos críticos como una recompensa justa.</p>
+                            <p><strong>Enfoque Holístico:</strong> La influencia de factores extralaborales (múltiples trabajos, estudios) demuestra la necesidad de que las organizaciones adopten una visión integral del bienestar, reconociendo que el estrés del empleado es un fenómeno que trasciende el lugar de trabajo.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold text-slate-800 mb-4">Limitaciones del Estudio</h3>
+                        <div class="space-y-4 text-slate-600">
+                            <p><strong>Tamaño de la Muestra:</strong> Con solo 19 participantes, los resultados no son generalizables y deben ser considerados como indicativos y preliminares. La baja potencia estadística impide extraer conclusiones definitivas.</p>
+                            <p><strong>Datos Autoinformados:</strong> Las respuestas pueden estar sujetas a sesgos de deseabilidad social o de recuerdo. La naturaleza transversal del estudio permite identificar correlaciones, pero no establecer causalidad.</p>
+                            <p><strong>Ambigüedad de Respuestas:</strong> La opción "Tal vez" introduce incertidumbre en la interpretación, dificultando la cuantificación precisa de los niveles de estrés.</p>
+                             <p><strong>Falta de Contexto Detallado:</strong> La ausencia de información específica sobre la industria o la cultura organizacional limita la transferibilidad de los hallazgos a otros entornos.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="recomendaciones" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-4">Recomendaciones Estratégicas</h2>
+                    <p class="max-w-3xl mx-auto text-lg text-slate-600">Basado en los hallazgos, se proponen acciones clave para mitigar el estrés y fomentar un entorno laboral más saludable. Haga clic en cada recomendación para expandir y ver los detalles.</p>
+                </div>
+
+                <div class="max-w-4xl mx-auto space-y-4" id="accordion-container">
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-white py-8">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2025 Análisis de Estrés Laboral. Generado interactivamente.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const dimensionData = {
+                demanda: {
+                    title: 'Demanda y Control Laboral',
+                    level: 'Nivel de estrés: Moderado-Alto',
+                    interpretation: 'Los empleados perciben una carga de trabajo significativa, con plazos ajustados (47% Sí/Tal vez) e interrupciones frecuentes (63% Sí/Tal vez) como principales fuentes de presión. Esto sugiere un desequilibrio que, según el modelo JD-R, puede llevar al deterioro de la salud si no se gestiona.',
+                    data: [42, 18, 40],
+                    labels: ['Sí (Negativo)', 'Tal vez', 'No (Positivo)'],
+                    colors: ['#ef4444', '#f59e0b', '#22c55e']
+                },
+                apoyo: {
+                    title: 'Entorno y Apoyo Social',
+                    level: 'Nivel de estrés: Bajo-Moderado',
+                    interpretation: 'El apoyo entre compañeros es una fortaleza notable (72% Sí) y un recurso valioso. Sin embargo, existe cierta tensión en la relación con los superiores (21% Sí/Tal vez), lo que indica que el apoyo vertical podría ser un área de mejora para fortalecer los recursos sociales generales.',
+                    data: [58, 16, 26],
+                    labels: ['Sí (Positivo)', 'Tal vez', 'No (Negativo)'],
+                    colors: ['#22c55e', '#f59e0b', '#ef4444']
+                },
+                reconocimiento: {
+                    title: 'Reconocimiento y Recompensa',
+                    level: 'Nivel de estrés: Moderado',
+                    interpretation: 'Los resultados son mixtos. Aunque la claridad de roles es alta, casi la mitad de los encuestados no percibe su salario como justo (47% No/Tal vez). Esto apunta a un desequilibrio esfuerzo-recompensa (modelo ERI), una fuente clave de frustración y estrés.',
+                    data: [49, 20, 31],
+                    labels: ['Sí (Positivo)', 'Tal vez', 'No (Negativo)'],
+                    colors: ['#22c55e', '#f59e0b', '#ef4444']
+                },
+                autonomia: {
+                    title: 'Autonomía y Claridad de Rol',
+                    level: 'Nivel de estrés: Moderado',
+                    interpretation: 'A pesar de una autonomía aceptable y roles bien definidos (recursos importantes), el nivel de agotamiento físico y mental es muy alto (63% Sí/Tal vez). Esto sugiere que los recursos actuales son insuficientes para contrarrestar las altas demandas existentes.',
+                    data: [45, 18, 37],
+                    labels: ['Sí (Positivo)', 'Tal vez', 'No (Negativo)'],
+                    colors: ['#22c55e', '#f59e0b', '#ef4444']
+                },
+                bienestar: {
+                    title: 'Bienestar y Salud',
+                    level: 'Nivel de estrés: Moderado',
+                    interpretation: 'Más de la mitad de los empleados (55% Sí/Tal vez) reporta afectaciones en su salud o estado de ánimo. La dificultad para desconectarse del trabajo (37% Sí) es un síntoma claro de desequilibrio vida-trabajo y un precursor del agotamiento crónico (burnout).',
+                    data: [36, 19, 45],
+                    labels: ['Sí (Negativo)', 'Tal vez', 'No (Positivo)'],
+                    colors: ['#ef4444', '#f59e0b', '#22c55e']
+                }
+            };
+
+            const recommendationsData = [
+                {
+                    title: 'Reducir la Carga Laboral y Optimizar Demandas',
+                    content: 'Realizar evaluaciones periódicas de la carga de trabajo para asegurar una distribución equitativa. Implementar capacitaciones en gestión del tiempo y establecer protocolos para minimizar interrupciones, equilibrando así las demandas con la capacidad de los empleados.'
+                },
+                {
+                    title: 'Fortalecer el Reconocimiento y la Recompensa Justa',
+                    content: 'Revisar las estructuras salariales para garantizar la equidad y competitividad. Implementar un sistema de reconocimiento claro y consistente, tanto formal (bonos, ascensos) como informal (agradecimientos), para que el esfuerzo sea percibido como valorado.'
+                },
+                {
+                    title: 'Promover el Bienestar y la Salud Mental',
+                    content: 'Ofrecer programas integrales de bienestar que incluyan talleres de manejo del estrés y acceso a apoyo psicológico. Fomentar una cultura que respete el tiempo personal y establezca límites claros para la comunicación fuera del horario laboral.'
+                },
+                {
+                    title: 'Mejorar el Apoyo Supervisorio y la Autonomía',
+                    content: 'Capacitar a los líderes en habilidades de comunicación, apoyo y resolución de conflictos. Asegurar que la autonomía delegada venga acompañada de los recursos necesarios para que los empleados puedan tomar decisiones de manera efectiva sin generar estrés adicional.'
+                }
+            ];
+
+            const dimensionButtonsContainer = document.getElementById('dimension-buttons');
+            Object.keys(dimensionData).forEach(key => {
+                const button = document.createElement('button');
+                button.className = 'dimension-btn bg-white hover:bg-teal-50 text-teal-700 font-semibold py-2 px-4 border border-teal-500 rounded-full shadow-sm';
+                button.textContent = dimensionData[key].title;
+                button.dataset.dimension = key;
+                dimensionButtonsContainer.appendChild(button);
+            });
+
+            const accordionContainer = document.getElementById('accordion-container');
+            recommendationsData.forEach((item, index) => {
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'bg-white border border-slate-200/80 rounded-lg shadow-sm';
+                
+                const button = document.createElement('button');
+                button.className = 'accordion-button w-full flex justify-between items-center text-left p-4 font-semibold text-slate-800 hover:bg-slate-50';
+                button.innerHTML = `
+                    <span>${item.title}</span>
+                    <span class="transform transition-transform duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </span>
+                `;
+
+                const content = document.createElement('div');
+                content.className = 'accordion-content';
+                content.innerHTML = `<div class="p-4 pt-0 text-slate-600">${item.content}</div>`;
+
+                accordionItem.appendChild(button);
+                accordionItem.appendChild(content);
+                accordionContainer.appendChild(accordionItem);
+
+                button.addEventListener('click', () => {
+                    const isExpanded = content.style.maxHeight && content.style.maxHeight !== '0px';
+                    
+                    document.querySelectorAll('.accordion-content').forEach(el => el.style.maxHeight = '0px');
+                    document.querySelectorAll('.accordion-button span:last-child').forEach(el => el.classList.remove('rotate-180'));
+
+                    if (!isExpanded) {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        button.querySelector('span:last-child').classList.add('rotate-180');
+                    }
+                });
+            });
+
+            const ctxDimension = document.getElementById('dimensionChart').getContext('2d');
+            let dimensionChart = new Chart(ctxDimension, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderColor: '#f8fafc',
+                        borderWidth: 4,
+                        hoverBorderWidth: 4,
+                        hoverBorderColor: '#f1f5f9'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 14,
+                                    family: 'Inter'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            function updateDimensionChart(dimensionKey) {
+                const details = dimensionData[dimensionKey];
+                document.getElementById('dimension-title').textContent = details.title;
+                document.getElementById('dimension-level').textContent = details.level;
+                document.getElementById('dimension-interpretation').textContent = details.interpretation;
+
+                dimensionChart.data.labels = details.labels;
+                dimensionChart.data.datasets[0].data = details.data;
+                dimensionChart.data.datasets[0].backgroundColor = details.colors;
+                dimensionChart.update();
+
+                document.querySelectorAll('.dimension-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.dimension === dimensionKey) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+
+            dimensionButtonsContainer.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    updateDimensionChart(e.target.dataset.dimension);
+                }
+            });
+
+            updateDimensionChart('demanda');
+
+            const ctxFactors = document.getElementById('factorsChart').getContext('2d');
+            new Chart(ctxFactors, {
+                type: 'bar',
+                data: {
+                    labels: ['Siente Agotamiento Físico/Mental'],
+                    datasets: [
+                        {
+                            label: 'Con Múltiples Trabajos / Estudia',
+                            data: [67],
+                            backgroundColor: '#f43f5e',
+                            borderColor: '#be123c',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Resto de Encuestados',
+                            data: [59],
+                            backgroundColor: '#38bdf8',
+                            borderColor: '#0284c7',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + "%"
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.x + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            const mobileNav = document.getElementById('mobile-nav');
+            mobileNav.addEventListener('change', function() {
+                const targetId = this.value;
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+            
+            const sections = document.querySelectorAll('main section');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.id;
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href').substring(1) === id);
+                        });
+                        mobileNav.value = `#${id}`;
+                    }
+                });
+            }, { rootMargin: '-50% 0px -50% 0px' });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
